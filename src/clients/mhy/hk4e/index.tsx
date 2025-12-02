@@ -42,8 +42,12 @@ import {
 import { createWorkaround3Config } from "./config/workaround-3";
 import createPatchOff from "./config/patch-off";
 import createBlockNet from "./config/block-net";
+import { createEnableHDRConfig } from "./config/enable-hdr";
 import { getGameVersion } from "../unity";
-import { VoicePackNames } from "../launcher-info";
+import {
+  VoicePackNames,
+  HoyoConnectGameBackgroundType,
+} from "../launcher-info";
 import { getLatestAdvInfo, getLatestVersionInfo } from "../hyp-connect";
 
 // no need to check supported version
@@ -65,7 +69,12 @@ export async function createHK4EChannelClient({
   const {
     background: { url: background },
     icon: { url: icon, link: icon_link },
+    video: { url: video_url },
+    theme: { url: theme_url },
+    type: bg_type,
   } = await getLatestAdvInfo(locale, server);
+  const IS_VIDEO_BG =
+    bg_type === HoyoConnectGameBackgroundType.BACKGROUND_TYPE_VIDEO;
 
   const sophon_port = Math.floor(Math.random() * (65535 - 40000)) + 40000;
   const sophon_host = "127.0.0.1";
@@ -120,8 +129,9 @@ export async function createHK4EChannelClient({
     installDir: _gameInstallDir,
     updateRequired,
     uiContent: {
-      background,
-      iconImage: icon,
+      background: background, // Always show image
+      background_video: IS_VIDEO_BG ? video_url : undefined,
+      background_theme: IS_VIDEO_BG ? theme_url : undefined,
       url: icon_link,
     },
     predownloadVersion: () =>
@@ -289,9 +299,17 @@ export async function createHK4EChannelClient({
       const [W3] = await createWorkaround3Config({ locale, config });
       const [PO] = await createPatchOff({ locale, config });
       const [BN] = await createBlockNet({ locale, config });
+      const [HDR] = await createEnableHDRConfig({ locale, config });
 
       return function () {
-        return ["Game Version: ", gameCurrentVersion(), <W3 />, <PO />, <BN />];
+        return [
+          "Game Version: ",
+          gameCurrentVersion(),
+          <HDR />,
+          <W3 />,
+          <PO />,
+          <BN />,
+        ];
       };
     },
   };
